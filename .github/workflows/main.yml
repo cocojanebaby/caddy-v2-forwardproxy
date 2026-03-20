@@ -4,20 +4,11 @@ on:
   push:
     branches:
       - main  # 每次 push 到 main 分支时触发（你可以调整为其他分支）
-  pull_request:
-    branches:
-      - main  # 提交 PR 时触发
-  # 如果你希望每次构建都发布一个版本，可以选择使用 date 作为版本号
   workflow_dispatch:  # 手动触发 CI/CD 流程
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        goos: [linux, windows, darwin]  # 支持 Linux, Windows 和 macOS
-        goarch: [amd64]  # amd64 架构，如果需要其他架构可以扩展
 
     steps:
       # 步骤1: 检出代码
@@ -28,30 +19,25 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'  # 最新版 Go 版本，确保使用最新的 Go
+          go-version: '1.22'  # 使用最新版 Go
 
       # 步骤3: 安装 xcaddy（确保每次使用最新版本）
       - name: Install xcaddy
         run: |
           go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest  # 安装最新的 xcaddy
 
-      # 步骤4: 拉取最新依赖并编译
-      - name: Build Caddy
+      # 步骤4: 使用 xcaddy 编译 Caddy，并加上 forwardproxy 插件
+      - name: Build Caddy for Linux amd64
         run: |
-          # 确保拉取最新依赖
-          go mod tidy
-          
-          # 使用 xcaddy 编译 Caddy，并加上 forwardproxy 插件
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} xcaddy build --with github.com/caddyserver/forwardproxy
+          GOOS=linux GOARCH=amd64 xcaddy build --with github.com/caddyserver/forwardproxy
 
           # 移动二进制文件并命名为适合的平台
-          mv caddy caddy-${{ matrix.goos }}-${{ matrix.goarch }}
+          mv caddy caddy-linux-amd64
 
       # 步骤5: 获取自动版本号
       - name: Get version number
         id: version
         run: |
-          # 获取 git 最新 commit 版本号，作为自动版本号（例如：v1.0.0-15-gabc123）
           VERSION=$(git describe --tags --always)
           echo "Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_ENV
@@ -60,6 +46,6 @@ jobs:
       - name: Create Release and upload binary
         uses: softprops/action-gh-release@v2
         with:
-          files: caddy-${{ matrix.goos }}-${{ matrix.goarch }}
+          files: caddy-linux-amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub 的 token，用于创建 Release 和上传文件
