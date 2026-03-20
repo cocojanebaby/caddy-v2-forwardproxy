@@ -1,0 +1,42 @@
+name: Build Caddy with forwardproxy
+
+on:
+  push:
+    branches:
+      - main  # 你可以根据需要修改为其他分支
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # 安装 Go 环境
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'  # 你可以根据需要修改 Go 版本
+
+      # 安装 xcaddy
+      - name: Install xcaddy
+        run: |
+          curl -sSL https://github.com/caddyserver/xcaddy/releases/download/v0.2.0/xcaddy_linux_amd64 -o /usr/local/bin/xcaddy
+          chmod +x /usr/local/bin/xcaddy
+
+      # 使用 xcaddy 编译带 forwardproxy 插件的 Caddy
+      - name: Build Caddy with forwardproxy
+        run: |
+          xcaddy build --with github.com/caddyserver/forwardproxy
+
+      # 上传编译后的 Caddy 二进制文件
+      - name: Upload Caddy Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: caddy-binary
+          path: caddy
