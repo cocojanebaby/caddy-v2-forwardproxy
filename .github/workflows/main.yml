@@ -42,11 +42,17 @@ jobs:
           echo "Generated Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_ENV
 
-      # 步骤6: 创建 Release 并上传二进制文件
+      # 步骤6: 创建 Git tag
+      - name: Create Git tag
+        run: |
+          git tag -a "${{ env.version }}" -m "Release version ${{ env.version }}"
+          git push origin "${{ env.version }}"  # 推送新标签
+
+      # 步骤7: 创建 Release 并上传二进制文件
       - name: Create Release and upload binary
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.version }}  # 使用生成的版本号
+          tag_name: ${{ env.version }}  # 使用创建的 tag
           files: caddy-linux-amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub 的 token，用于创建 Release 和上传文件
