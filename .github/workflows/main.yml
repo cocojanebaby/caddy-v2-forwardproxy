@@ -34,18 +34,24 @@ jobs:
           # 移动二进制文件并命名为适合的平台
           mv caddy caddy-linux-amd64
 
-      # 步骤5: 获取自动版本号
+      # 步骤5: 获取自动版本号并创建标签
       - name: Get version number
         id: version
         run: |
+          # 获取最新的 Git 提交版本号
           VERSION=$(git describe --tags --always)
           echo "Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_ENV
+
+          # 自动创建一个新的 git tag（例如：v1.0.0-15-gabc123）
+          git tag -a "v$VERSION" -m "Release version $VERSION"
+          git push origin "v$VERSION"  # 推送新标签
 
       # 步骤6: 创建 Release 并上传二进制文件
       - name: Create Release and upload binary
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.version }}  # 使用创建的 tag
           files: caddy-linux-amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub 的 token，用于创建 Release 和上传文件
